@@ -1,0 +1,242 @@
+===Base de datos udc
+
+== Estructura de tabla para la tabla asignaciones
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_asignacion**//|int(11)|No|
+|id_docente|int(11)|No|
+|id_materia|int(11)|No|
+|id_grupo|int(11)|No|
+== Volcado de datos para la tabla asignaciones
+
+|1|2|1|1
+|2|2|2|1
+|3|3|3|2
+|4|3|4|2
+|5|4|5|3
+|6|4|6|3
+|7|5|7|4
+|8|5|8|4
+== Estructura de tabla para la tabla asistencias
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_asistencia**//|int(11)|No|
+|id_alumno|int(11)|Sí|NULL
+|fecha|date|Sí|NULL
+|hora|time|Sí|NULL
+|estado|enum(&#039;Presente&#039;, &#039;Retardo&#039;, &#039;Falta&#039;)|Sí|NULL
+== Volcado de datos para la tabla asistencias
+
+== Estructura de tabla para la tabla calificaciones
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_calificacion**//|int(11)|No|
+|id_alumno|int(11)|Sí|NULL
+|id_materia|int(11)|Sí|NULL
+|calificacion|decimal(5,2)|Sí|NULL
+|periodo|varchar(30)|Sí|NULL
+== Volcado de datos para la tabla calificaciones
+
+|1|6|3|9.00|2026-A
+|2|6|4|NULL|2026-A
+== Estructura de tabla para la tabla entregas
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_entrega**//|int(11)|No|
+|id_tarea|int(11)|Sí|NULL
+|id_alumno|int(11)|Sí|NULL
+|archivo|varchar(255)|Sí|NULL
+|fecha_entrega|datetime|Sí|NULL
+|calificacion|decimal(5,2)|Sí|NULL
+|observaciones|text|Sí|NULL
+== Volcado de datos para la tabla entregas
+
+|3|6|6|6a4d7031ee2f9_miguel 1.pdf|2026-07-07 15:31:29|10.00|perfecto
+|4|9|6|6a4da861ec0e7_GUANTES.pdf|2026-07-07 19:31:13|NULL|NULL
+|5|7|6|6a4da87b3851f_Planeacion_Sprint_Tacos.docx|2026-07-07 19:31:39|8.00|esta perron
+|6|18|6|6a4db90b0c1df_Gemini_Generated_Image_41yuij41yuij41yu.png|2026-07-07 20:42:19|10.00|buen trabajo
+== Disparadores entregas
+
+|------
+|Nombre|Tiempo|Evento|Definición
+|------
+|actualizar_calificacion_entrega|AFTER|INSERT|BEGIN
+    DECLARE promedio DECIMAL(5,2);
+
+    -- Calcular promedio de todas las entregas del alumno en esa materia
+    SELECT AVG(e.calificacion)
+    INTO promedio
+    FROM entregas e
+    INNER JOIN tareas t ON e.id_tarea = t.id_tarea
+    WHERE e.id_alumno = NEW.id_alumno
+      AND t.id_materia = (SELECT id_materia FROM tareas WHERE id_tarea = NEW.id_tarea);
+
+    -- Si ya existe calificación para ese alumno y materia, actualizar
+    IF EXISTS (
+        SELECT 1 FROM calificaciones 
+        WHERE id_alumno = NEW.id_alumno 
+          AND id_materia = (SELECT id_materia FROM tareas WHERE id_tarea = NEW.id_tarea)
+    ) THEN
+        UPDATE calificaciones
+        SET calificacion = promedio
+        WHERE id_alumno = NEW.id_alumno
+          AND id_materia = (SELECT id_materia FROM tareas WHERE id_tarea = NEW.id_tarea);
+    ELSE
+        -- Si no existe, insertar nueva calificación
+        INSERT INTO calificaciones (id_alumno, id_materia, calificacion, periodo)
+        VALUES (
+            NEW.id_alumno,
+            (SELECT id_materia FROM tareas WHERE id_tarea = NEW.id_tarea),
+            promedio,
+            &#039;2026-A&#039; -- Ajusta el periodo según tu sistema
+        );
+    END IF;
+END
+== Estructura de tabla para la tabla grupos
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_grupo**//|int(11)|No|
+|nombre|varchar(50)|Sí|NULL
+|semestre|int(11)|Sí|NULL
+== Volcado de datos para la tabla grupos
+
+|1|1A|1
+|2|1B|1
+|3|2A|2
+|4|2B|2
+== Estructura de tabla para la tabla inscripciones
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_inscripcion**//|int(11)|No|
+|id_alumno|int(11)|Sí|NULL
+|id_grupo|int(11)|Sí|NULL
+== Volcado de datos para la tabla inscripciones
+
+|1|14|1
+|2|18|2
+|3|6|2
+|4|9|4
+|5|7|4
+|6|16|1
+|7|12|3
+|8|19|4
+== Estructura de tabla para la tabla materias
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_materia**//|int(11)|No|
+|nombre|varchar(100)|No|
+|descripcion|text|Sí|NULL
+== Volcado de datos para la tabla materias
+
+|1|Programación|Fundamentos de programación y desarrollo de software.
+|2|Base de Datos|Diseño, creación y administración de bases de datos relacionales.
+|3|Desarrollo Web|Creación de aplicaciones web utilizando HTML, CSS y JavaScript.
+|4|Redes de Computadoras|Conceptos de redes, protocolos y configuración de dispositivos.
+|5|Sistemas Operativos|Administración y funcionamiento de sistemas operativos.
+|6|Ingeniería de Software|Metodologías para el análisis, diseño y desarrollo de software.
+|7|Matemáticas Discretas|Lógica, conjuntos, grafos y estructuras matemáticas para informática.
+|8|Seguridad Informática|Principios de ciberseguridad, protección de datos y buenas prácticas.
+== Estructura de tabla para la tabla mensajes
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_mensaje**//|int(11)|No|
+|id_remitente|int(11)|No|
+|id_destinatario|int(11)|No|
+|mensaje|text|No|
+|fecha|timestamp|Sí|current_timestamp()
+== Volcado de datos para la tabla mensajes
+
+== Estructura de tabla para la tabla roles
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_rol**//|int(11)|No|
+|**nombre**|varchar(50)|No|
+== Volcado de datos para la tabla roles
+
+|1|Administrador
+|2|Docente
+|3|Alumno
+== Estructura de tabla para la tabla tareas
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_tarea**//|int(11)|No|
+|titulo|varchar(150)|Sí|NULL
+|descripcion|text|Sí|NULL
+|fecha_publicacion|date|Sí|NULL
+|fecha_entrega|date|Sí|NULL
+|id_docente|int(11)|Sí|NULL
+|id_materia|int(11)|Sí|NULL
+== Volcado de datos para la tabla tareas
+
+|1|mapa mental|crea un mapa mental en tu cuaderno|2026-07-07|2026-07-08|2|1
+|2|Ejercicio de Bucles|Realiza un programa que use bucles para imprimir números del 1 al 100.|2026-07-07|2026-07-10|2|1
+|3|Proyecto Final|Desarrolla un programa completo que incluya funciones y manejo de errores.|2026-07-07|2026-07-15|2|1
+|4|Modelo ER|Crea un diagrama entidad-relación para un sistema escolar.|2026-07-07|2026-07-10|2|2
+|5|Consultas SQL|Escribe consultas SQL para obtener información de una base de datos de ejemplo.|2026-07-07|2026-07-12|2|2
+|6|Página HTML|Crea una página web básica con HTML y CSS.|2026-07-07|2026-07-09|2|3
+|7|Formulario PHP|Haz un formulario en PHP que guarde datos en una base de datos.|2026-07-07|2026-07-13|2|3
+|8|Topologías de Red|Investiga y explica las diferentes topologías de red.|2026-07-07|2026-07-11|2|4
+|9|Configuración IP|Configura direcciones IP en Packet Tracer para una red pequeña.|2026-07-07|2026-07-14|2|4
+|10|Procesos en SO|Explica cómo funcionan los procesos en un sistema operativo.|2026-07-07|2026-07-10|2|5
+|11|Gestión de Memoria|Describe los métodos de gestión de memoria en sistemas operativos.|2026-07-07|2026-07-12|2|5
+|12|Ciclo de Vida|Explica las fases del ciclo de vida del software.|2026-07-07|2026-07-09|2|6
+|13|Casos de Uso|Diseña casos de uso para un sistema de biblioteca.|2026-07-07|2026-07-13|2|6
+|14|Conjuntos|Resuelve ejercicios sobre operaciones con conjuntos.|2026-07-07|2026-07-10|2|7
+|15|Grafos|Dibuja y analiza un grafo dirigido con 5 nodos.|2026-07-07|2026-07-12|2|7
+|16|Tipos de Malware|Investiga y describe los principales tipos de malware.|2026-07-07|2026-07-11|2|8
+|17|Cifrado|Explica cómo funciona el cifrado simétrico y asimétrico.|2026-07-07|2026-07-14|2|8
+|18|Proyecto|Programacion|2026-07-07|2026-05-18|3|3
+== Estructura de tabla para la tabla usuarios
+
+|------
+|Columna|Tipo|Nulo|Predeterminado
+|------
+|//**id_usuario**//|int(11)|No|
+|nombre|varchar(100)|No|
+|apellido|varchar(100)|No|
+|**correo**|varchar(100)|No|
+|contrasena|varchar(255)|No|
+|activo|tinyint(1)|Sí|1
+|id_rol|int(11)|Sí|NULL
+== Volcado de datos para la tabla usuarios
+
+|1|Carlos|Ramirez|admin@udc.edu|123456|1|1
+|2|Juan|Perez|juan.perez@udc.edu|123456|1|2
+|3|Maria|Lopez|maria.lopez@udc.edu|123456|1|2
+|4|Luis|Hernandez|luis.hernandez@udc.edu|123456|1|2
+|5|Ana|Martinez|ana.martinez@udc.edu|123456|1|2
+|6|Leo|Garcia|leo.garcia@udc.edu|123456|1|3
+|7|Pedro|Sanchez|pedro.sanchez@udc.edu|123456|1|3
+|8|Sofia|Morales|sofia.morales@udc.edu|123456|1|3
+|9|Diego|Torres|diego.torres@udc.edu|123456|1|3
+|10|Valeria|Cruz|valeria.cruz@udc.edu|123456|1|3
+|11|Jorge|Castro|jorge.castro@udc.edu|123456|1|3
+|12|Fernanda|Ruiz|fernanda.ruiz@udc.edu|123456|1|3
+|13|Miguel|Flores|miguel.flores@udc.edu|123456|1|3
+|14|Andrea|Vargas|andrea.vargas@udc.edu|123456|1|3
+|15|Ricardo|Navarro|ricardo.navarro@udc.edu|123456|1|3
+|16|Daniela|Ortega|daniela.ortega@udc.edu|123456|1|3
+|17|Kevin|Mendoza|kevin.mendoza@udc.edu|123456|1|3
+|18|Camila|Silva|camila.silva@udc.edu|123456|1|3
+|19|Emiliano|Rojas|emiliano.rojas@udc.edu|123456|1|3
+|20|Paola|Gutierrez|paola.gutierrez@udc.edu|123456|1|3
